@@ -5,6 +5,16 @@ A Python3 CASC library and pyqt CASC Viewer app.
 
 This is part of a much larger year-long project, that will hopefully result in a very nice blizzard reverse-engineering toolkit.
 
+## 공지사항
+- 파이썬을 익히기 위한 용도도 있습니다.
+- 대부분 문서화나 주석은 한글로 작성할 예정입니다.
+- 원본 코드는 여기를 사용하세요 : [RaidAndFade/PyCASC](https://github.com/RaidAndFade/PyCASC).
+
+## 개발환경
+- Python 3.10.1
+- VS Code 1.65.0
+- 
+
 ## CASC? 
 Blizzard's proprietary data storage format (used in practically all of their products)
 
