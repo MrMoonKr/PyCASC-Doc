@@ -3,7 +3,7 @@ import requests
 import os
 import hashlib
 import pickle
-from io import BytesIO
+from io import BufferedReader, BytesIO
 from time import time
 from PyCASC import CACHE_DIRECTORY, CACHE_DURATION
 
@@ -37,8 +37,9 @@ def hexkey_to_bytes(s:str):
 def byteskey_to_hex(b:bytes):
     return b.hex()
     
-def var_int(f:object,l:int,le=True):
-    return int.from_bytes(f.read(l), byteorder='little' if le else 'big', signed=False)
+def var_int( f: BufferedReader, l: int, is_little_endian: bool = True ) -> int:
+    """파일스트림으로 부터 원하는 길이만큼 읽어들여 정수로 반환"""
+    return int.from_bytes( f.read(l), byteorder='little' if is_little_endian else 'big', signed=False )
 
 def jenkins_hash(key:bytes):
     h=0

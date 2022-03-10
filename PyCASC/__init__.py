@@ -50,21 +50,41 @@ class FileInfo:
     name:str
     extras:dict
     
-def r_idx(fp: str):
+def r_idx( file_name: str ) -> list[FileInfo]:
+    """ /World of Warcraft/Data/data/~~~.idx 파일 로딩 """
+
     ents=[]
-    with open(fp, 'rb') as f:
-        hl,hh,u_0,bi,u_1,ess,eos,eks,afhb,atsm,_,elen,eh=struct.unpack("IIH6BQQII",f.read(0x28))
-        esize = ess+eos+eks
-        for x in range(0x28,0x28+elen,esize):
-            ek=var_int(f,eks,False)
-            eo=var_int(f,eos,False)
-            es=var_int(f,ess)
-            e=FileInfo()
-            e.data_file=eo>>30
-            e.offset=eo&(2**30-1)
-            e.compressed_size=es
-            e.ekey=ek
-            ents.append(e)
+    with open( file_name, 'rb' ) as f:
+        # 40( 0x28 )바이트 파일헤더 읽기
+        (
+            header_hash_size,
+            header_hash,
+            unknown_0,
+            bucket_index,
+            unknown_1,
+            entry_size_bytes,
+            entry_offset_bytes,
+            entry_key_bytes,
+            archive_file_header_bytes,
+            archive_total_size_maximum,
+            padding,
+            entries_size,
+            entries_hash
+        ) = struct.unpack( "IIH6BQQII", f.read( 0x28 ) )
+
+        esize = entry_size_bytes + entry_offset_bytes + entry_key_bytes
+        for x in range( 0x28, 0x28 + entries_size, esize ):
+            ek = var_int( f, entry_key_bytes, False )       # 9 bytes, key
+            eo = var_int( f, entry_offset_bytes, False )    # 5 bytes, 40bits = 10bits ( archive index ) + 30bits ( offset )
+            es = var_int( f, entry_size_bytes )             # 4 bytes, size
+
+            e                   = FileInfo()
+            e.data_file         = eo >> 30
+            e.offset            = eo & ( 2**30-1 )
+            e.compressed_size   = es
+            e.ekey              = ek
+
+            ents.append( e )
     return ents
 
 def r_cidx(df): 
