@@ -249,12 +249,12 @@ WOW_DATAID_FILE=4
 
 def parse_root_file(uid,fd,cascreader):
     """Returns an array of format [TYPE, ID, CKEY, EXTRA...],
-    Type = one of NAMED_FILE, ID_FILE, ID_INDEXED_FILE
-    Id = depends on type. NAMED:"strname", ID:"id", ID_INDEXED:("id","index")
-    Ckey = that file's ckey
-    Extra = uid specific data 
-        d3: extra is the "directory" that the file is in
-    """
+        Type = one of NAMED_FILE, ID_FILE, ID_INDEXED_FILE
+        Id = depends on type. NAMED:"strname", ID:"id", ID_INDEXED:("id","index")
+        Ckey = that file's ckey
+        Extra = uid specific data 
+            d3: extra is the "directory" that the file is in"""
+
     from PyCASC.rootfiles import parse_d3_root, parse_wow_root, parse_mndx_root, parse_warcraft3_root, parse_hearthstone_root, parse_ow_root
 
     if uid in ['hsb']:

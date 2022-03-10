@@ -113,21 +113,23 @@ class CascViewApp(QMainWindow):
         self.filetree=self.genFileTree()
         self.curPath=[]
 
-    def load_casc_dir(self, d):
+    def load_casc_dir(self, d: str):
+        """로컬에 설치된 블리자드 게임 로딩
+        """
         self.load_empty_table()
         self.populateTable()
 
-        self.CASCReader = DirCASCReader(d)
-        self.files = self.CASCReader.list_files()
-        self.unknown_files = self.CASCReader.list_unnamed_files()
-        self.filetree = self.genFileTree()
-        self.curPath = []
+        self.CASCReader     = DirCASCReader(d)
+        self.files          = self.CASCReader.list_files()
+        self.unknown_files  = self.CASCReader.list_unnamed_files()
+        self.filetree       = self.genFileTree()
+        self.curPath        = []
         self.populateTable()
 
     def load_casc_cdn( self, product ):
         """특정게임 다운로드
             Args:
-                product (string): "wow", "w3", "s2", ...
+                product (str): "wow", "w3", "s2", ...
         """
         self.load_empty_table()
         self.populateTable()
@@ -395,6 +397,9 @@ class CascViewApp(QMainWindow):
 if __name__ == '__main__':
     app = QApplication( sys.argv )
     ex = CascViewApp()
+
+    ex.load_casc_dir("F:/myGames/World of Warcraft")
+
     # ex.load_casc_dir("G:/Misc Games/Warcraft III")
     # ex.load_casc_dir("G:/Misc Games/Diablo III") 
 

@@ -7,7 +7,7 @@ from io import BytesIO
 from time import time
 from PyCASC import CACHE_DIRECTORY, CACHE_DURATION
 
-def parse_config(c) -> List[Dict[str,str]]:
+def parse_config(c: str) -> List[Dict[str,str]]:
     out = []
     lines = c.split("\n")
     cols = list(map(lambda x:x.split("!")[0],lines[0].split("|")))
@@ -159,7 +159,7 @@ def have_cached(url,cache_dur=CACHE_DURATION):
     else:
         return False
 
-def get_cached(url,cache=True,cache_dur=CACHE_DURATION,max_size=-1,offset=0,size=-1):
+def get_cached(url, cache=True, cache_dur=CACHE_DURATION, max_size=-1, offset=0, size=-1):
     cache_file = os.path.join(CACHE_DIRECTORY,f"{hashlib.sha256(url.encode('utf-8')).hexdigest()}.cache")
     # print(cache_file)
     d = None
@@ -193,13 +193,16 @@ def get_cached(url,cache=True,cache_dur=CACHE_DURATION,max_size=-1,offset=0,size
 
 # I don't really want to use this, since splitting it into different handlers allows easier 
 #  parsing of each subgroup (since the subgroups are quite similar)
-def get_cdn_url(cdn_url,cdn_path,file_type,file_hash,index=False):
+def get_cdn_url(cdn_url, cdn_path, file_type, file_hash, index=False):
+    """웹다운로드 주소 만들기"""
     return f"http://{cdn_url}/{cdn_path}/{file_type}/{file_hash[:2]}/{file_hash[2:4]}/{file_hash}"+(".index" if index else "")
 
-def _get_cdn_file(cdn_url,cdn_path,file_type,file_hash,cache=True,cache_dur=CACHE_DURATION,max_size=-1,index=False,offset=0,size=-1):
+def _get_cdn_file(cdn_url, cdn_path, file_type, file_hash, cache=True, cache_dur=CACHE_DURATION, max_size=-1, index=False, offset=0, size=-1):
     """ Get a specified file from a CDN for a product."""
+
     if not file_type in ['data','config','patch']:
         raise Exception(f"Invalid file type {file_type}")
+        
     u=get_cdn_url(cdn_url,cdn_path,file_type,file_hash,index=index)
     return get_cached(u,cache=cache,cache_dur=cache_dur,max_size=max_size,offset=offset,size=size)
 

@@ -50,9 +50,9 @@ class FileInfo:
     name:str
     extras:dict
     
-def r_idx(fp):
+def r_idx(fp: str):
     ents=[]
-    with open(fp,'rb') as f:
+    with open(fp, 'rb') as f:
         hl,hh,u_0,bi,u_1,ess,eos,eks,afhb,atsm,_,elen,eh=struct.unpack("IIH6BQQII",f.read(0x28))
         esize = ess+eos+eks
         for x in range(0x28,0x28+elen,esize):
@@ -124,7 +124,7 @@ class CASCReader:
     file_table:Dict[int,FileInfo]
     file_translate_table:Dict[int,tuple]
 
-    def __init__(self, read_install_file=True):
+    def __init__(self, read_install_file: bool = True):
         if read_install_file:
             ine = parse_install_file(self.get_file_by_ckey(self.install_ckey))
             for x in ine:
@@ -188,7 +188,7 @@ class CASCReader:
     def get_chunk_count_by_ckey(self,ckey):
         raise NotImplementedError()
 
-    def get_file_by_ckey(self,ckey,max_size=-1):
+    def get_file_by_ckey(self, ckey, max_size = -1):
         raise NotImplementedError()
 
     def get_file_info_by_ckey(self,ckey: Union[int,str]):
@@ -203,11 +203,15 @@ class CASCReader:
         **Not implemented yet** """
         pass
 
+
 from PyCASC.launcher import getProductCDNFile, getProductVersions, isCDNFileCached
 from PyCASC.utils.blizzutils import parse_build_config
 from PyCASC.utils.CASCUtils import parse_blte
+
 class CDNCASCReader(CASCReader):
-    def __init__(self, product, region="us", read_install_file=False):
+    """웹에 등록된 파일시스템 정보 로더"""
+
+    def __init__(self, product: str, region: str = "us", read_install_file: bool = False):
         self.product = product
 
         vrs = [x for x in getProductVersions(product) if x['Region']==region]
@@ -363,29 +367,46 @@ class CDNCASCReader(CASCReader):
                 ekey = f"{finfo.ekey:032x}"
                 return isCDNFileCached(self.product,ekey,cache_dur=3600*24*10)
 
+
 class DirCASCReader(CASCReader):
-    def __init__(self,path,read_install_file=True):
+    """로컬에 설치된 CASC 파일 시스템 로더"""
+
+    def __init__(self, path: str, read_install_file: bool=True):
         if not os.path.exists(path+"/.build.info") or not os.path.exists(path+"/Data/data"):
             raise Exception("Not a valid CASC datapath")
-        self.path = path
+        self.path       = path
         self.build_path = self.path+"/.build.info"
-        self.data_path = self.path+"/Data/data/"
+        self.data_path  = self.path+"/Data/data/"
 
-        build_file,self.build_config=None,None
-        with open(self.build_path,"r") as b:
-            build_file = parse_config(b.read())[0]
-        with open(path+"/Data/config/"+prefix_hash(build_file['Build Key']),"r") as b:
-            self.build_config = parse_build_config(b.read())
+        build_file      = None
+        self.build_config=None
+
+        with open(self.build_path, "r") as b:
+            build_file_bin  = b.read()
+            build_file_dat  = parse_config(build_file_bin)
+            build_file      = build_file_dat[0]
+            print("[.build.info] : ", build_file)
+            #build_file = parse_config(b.read())[0]
+
+        self.build_config_path = self.path + "/Data/config/" + prefix_hash( build_file['Build Key'] )
+        with open( self.build_config_path, "r" ) as b:
+            build_config_bin = b.read()
+            build_config_dat = parse_build_config( build_config_bin )
+            self.build_config = build_config_dat
+            print( "[.build.config]", self.build_config )
+            #self.build_config = parse_build_config(b.read())
+
+
         print("[BF]")
 
         assert build_file is not None and self.build_config is not None
 
-        self.uid = self.build_config['build-uid']
-        root_ckey = self.build_config['root']
-        enc_hash1,enc_hash2 = self.build_config['encoding'].split()
-        self.install_ckey,_ = self.build_config['install'].split()
-        download_hash1,_ = self.build_config['download'].split()
-        size_hash1,_ = self.build_config['size'].split()
+        self.uid                = self.build_config['build-uid']
+        root_ckey               = self.build_config['root']
+        enc_hash1,enc_hash2     = self.build_config['encoding'].split()
+        self.install_ckey,_     = self.build_config['install'].split()
+        download_hash1,_        = self.build_config['download'].split()
+        size_hash1,_            = self.build_config['size'].split()
 
         self.file_table = {} # maps ekey -> fileinfo (size, datafile, offset)
         files = os.listdir(self.data_path)
