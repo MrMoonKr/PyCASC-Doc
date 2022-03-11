@@ -16,6 +16,13 @@ import webbrowser
 #from .widgets.HexViewWidget import HexViewWidget
 #from .widgets.SaveFileWidget import SaveFileWidget
 
+import logging
+logger = logging.getLogger()
+logger.setLevel( logging.INFO )
+logger_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter( logger_formatter )
+logger.addHandler( stream_handler ) 
 
 # (Product Name, TACT-ID)
 SUPPORTED_CDN = [("Diablo 3","d3"),("Hearthstone","hsb"),("Warcraft III", "w3")]
@@ -398,6 +405,7 @@ if __name__ == '__main__':
     app = QApplication( sys.argv )
     ex = CascViewApp()
 
+    logger.info( "로컬 파일 시스템 로딩 시작" )
     ex.load_casc_dir("F:/myGames/World of Warcraft")
 
     # ex.load_casc_dir("G:/Misc Games/Warcraft III")

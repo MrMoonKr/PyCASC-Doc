@@ -1,10 +1,11 @@
 import struct
-from io import BytesIO
+from io import BufferedReader, BytesIO
 from typing import List
 from PyCASC import TACT_KEYS
 from PyCASC.utils.blizzutils import byteskey_to_hex, var_int
 
-def beautify_filesize(i):
+def beautify_filesize( i: int ):
+    """파일크기를 나타내는 문자열을 이쁘게"""
     t,c=["","K","M","G","T"],0
     while i>1024:i/=1024;c+=1
     return str(round(i,2))+t[c]+"B"
@@ -140,26 +141,39 @@ def parse_download_file(fd):
     
     return dl_entries
 
-def _r_casc_dataheader(f):
-    blth,sz,f_0,f_1,chkA,chkB=struct.unpack("16sI2b4s4s",f.read(30))
+def _r_casc_dataheader( f: BufferedReader ):
+    """ 에셋 파일 헤더 읽기. 30bytes"""
+    (
+        blth,
+        sz,
+        f_0,
+        f_1,
+        chkA,
+        chkB
+    ) = struct.unpack( "16sI2b4s4s", f.read(30) )
     return blth,sz,f_0,f_1,chkA,chkB
 
-def _r_casc_blteheader(f):
+def _r_casc_blteheader( f: BufferedReader ):
+    """ BLTE 에셋 파일 읽기"""
     assert f.read(4) == b"BLTE"
-    sz, = struct.unpack("I",f.read(4))
+    sz, = struct.unpack( "I", f.read(4) )
     if sz == 0: # single chunk. 
         return 0,0,1,[(-1,-1,b'')]
     
-    flg,cc=struct.unpack("B3s",f.read(4))
-    cc=int.from_bytes(cc,'big',signed=False)
+    (
+        flg,
+        cc
+    ) = struct.unpack( "B3s", f.read(4) )
+
+    cc = int.from_bytes( cc, 'big', signed=False )
 
     chunks=[]
     for _ in range(cc):
-        chunks.append(struct.unpack(">II16s",f.read(24)))
+        chunks.append( struct.unpack( ">II16s", f.read(24) ) )
         #compressedSize,decomressedSize,16byte checksum
     return sz,flg,cc,chunks
 
-def _r_casc_bltechunk(f,ci):
+def _r_casc_bltechunk( f, ci ):
     etype=f.read(1)
     if etype==b"N": #plain data
         return f.read(ci[1] if ci[1]>0 else -1)
@@ -186,9 +200,9 @@ def _r_casc_bltechunk(f,ci):
     else:
         raise Exception(f"Fuck you {etype} encoding")
 
-def parse_blte(df,read_data=True,max_size=-1):
-    if isinstance(df,bytes):
-        df=BytesIO(df)
+def parse_blte( df, read_data=True, max_size=-1 ):
+    if isinstance( df, bytes ):
+        df = BytesIO( df )
     blte_header=_r_casc_blteheader(df)
     blte_data,ds = BytesIO(),0
     if read_data:
@@ -212,14 +226,17 @@ def cascfile_size(data_path,data_index,offset):
             size+=c[1]
     return size, chunkcount
 
-def r_cascfile(data_path,data_index,offset,max_size=-1):
-    """ Reads a given cascfile, reading as many chunks as needed to get *at least* max_size bytes."""
+def r_cascfile( data_path, data_index, offset, max_size=-1 ):
+    """ data.xxx 아카이브로 부터 에셋 로딩
+        Reads a given cascfile, reading as many chunks as needed to get *at least* max_size bytes."""
+    asset_info = f"{data_path}data.{data_index:03d}"
+    print( f"{asset_info} , offset : {offset}" )
     # datafile = r_data(f"{data_path}data.{data_index:03d}")
     data = b''
-    with open(f"{data_path}data.{data_index:03d}","rb") as df:
-        df.seek(offset)
-        data_header = _r_casc_dataheader(df)
-        blte_header, data = parse_blte(df,max_size=max_size)
+    with open( f"{data_path}data.{data_index:03d}", "rb" ) as df:
+        df.seek( offset )
+        data_header = _r_casc_dataheader( df )
+        blte_header, data = parse_blte( df, max_size = max_size )
     return data
 
 # import functools

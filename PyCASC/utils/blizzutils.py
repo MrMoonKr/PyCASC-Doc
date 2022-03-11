@@ -8,16 +8,17 @@ from time import time
 from PyCASC import CACHE_DIRECTORY, CACHE_DURATION
 
 def parse_config(c: str) -> List[Dict[str,str]]:
-    out = []
-    lines = c.split("\n")
-    cols = list(map(lambda x:x.split("!")[0],lines[0].split("|")))
+    out     = []
+    lines   = c.split("\n")
+    cols    = list(map(lambda x:x.split("!")[0],lines[0].split("|")))
+
     for x in lines[1:]:
         if x[:2]=="##" or x.strip()=="": 
             continue
         row = {}
         i = 0
         for v in x.split("|"):
-            row[cols[i]]=v
+            row[cols[i]] = v
             i+=1
         out.append(row)
     return out
@@ -34,13 +35,14 @@ def parse_build_config(c):
 
 def hexkey_to_bytes(s:str):
     return bytes.fromhex(s)
+
 def byteskey_to_hex(b:bytes):
     return b.hex()
     
 def var_int( f: BufferedReader, l: int, is_little_endian: bool = True ) -> int:
     """파일스트림으로 부터 원하는 길이만큼 읽어들여 정수로 반환"""
     return int.from_bytes( f.read(l), byteorder='little' if is_little_endian else 'big', signed=False )
-
+    
 def jenkins_hash(key:bytes):
     h=0
     for x in key:

@@ -401,18 +401,18 @@ class DirCASCReader(CASCReader):
         build_file      = None
         self.build_config=None
 
-        with open(self.build_path, "r") as b:
-            build_file_bin  = b.read()
-            build_file_dat  = parse_config(build_file_bin)
-            build_file      = build_file_dat[0]
-            print("[.build.info] : ", build_file)
+        with open( self.build_path, "r" ) as b:
+            build_file_bin      = b.read()
+            build_file_dat      = parse_config( build_file_bin )
+            build_file          = build_file_dat[0]
+            print( "[.build.info] : ", build_file )
             #build_file = parse_config(b.read())[0]
 
         self.build_config_path = self.path + "/Data/config/" + prefix_hash( build_file['Build Key'] )
         with open( self.build_config_path, "r" ) as b:
-            build_config_bin = b.read()
-            build_config_dat = parse_build_config( build_config_bin )
-            self.build_config = build_config_dat
+            build_config_bin    = b.read()
+            build_config_dat    = parse_build_config( build_config_bin )
+            self.build_config   = build_config_dat
             print( "[.build.config]", self.build_config )
             #self.build_config = parse_build_config(b.read())
 
@@ -428,28 +428,29 @@ class DirCASCReader(CASCReader):
         download_hash1,_        = self.build_config['download'].split()
         size_hash1,_            = self.build_config['size'].split()
 
-        self.file_table = {} # maps ekey -> fileinfo (size, datafile, offset)
-        files = os.listdir(self.data_path)
+        self.file_table         = {} # maps ekey -> fileinfo (size, datafile, offset)
+
+        files = os.listdir( self.data_path ) # "/World of Warcraft/Data/data"
         for x in files:
             if x[-4:]==".idx":
-                # i,v=x[:2],x[2:-4]
-                ents=r_idx(self.data_path+x)
+                print("[파일로딩] : " + x )
+                ents = r_idx( self.data_path + x )
                 for e in ents:
                     if e.ekey not in self.file_table: # since apparently duplicates exist and are wrong.... YAY!
-                        self.file_table[e.ekey]=e
+                        self.file_table[e.ekey] = e
 
-        print(f"[ETBL] {len(self.file_table)}")
+        print(f"[전체에셋] : { len( self.file_table ) }")
 
-        enc_info = self.file_table[int(enc_hash2[:18],16)]
-        enc_file = r_cascfile(self.data_path,enc_info.data_file,enc_info.offset)
+        enc_info = self.file_table[int( enc_hash2[:18], 16 )]
+        enc_file = r_cascfile( self.data_path, enc_info.data_file, enc_info.offset )
         
         # Load the CKEY MAP from the encoding file.
-        self.ckey_map = parse_encoding_file(enc_file) # maps ckey(hexstr) -> ekey(int of first 9 bytes)
+        self.ckey_map = parse_encoding_file( enc_file ) # maps ckey(hexstr) -> ekey(int of first 9 bytes)
         print(f"[CTBL] {len(self.ckey_map)}")
 
         # print(root_ckey,self.ckey_map[int(root_ckey,16)],self.file_table[self.ckey_map[int(root_ckey,16)]])
-        root_file = self.get_file_by_ckey(root_ckey)
-        self.file_translate_table = parse_root_file(self.uid,root_file,self) # maps some ID(can be filedataid, path, whatever) -> ckey
+        root_file = self.get_file_by_ckey( root_ckey )
+        self.file_translate_table = parse_root_file( self.uid, root_file, self ) # maps some ID(can be filedataid, path, whatever) -> ckey
         print(f"[FTTBL] {len(self.file_translate_table)}")
 
         self.file_translate_table.append((NAMED_FILE,"_ROOT",root_ckey))
