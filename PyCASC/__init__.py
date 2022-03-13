@@ -4,6 +4,8 @@ import pickle
 from io import BytesIO
 from typing import Union, Dict
 
+import fnmatch
+
 CACHE_DURATION = 3600
 # CACHE_DIRECTORY = os.path.join(os.getcwd(),"cache")
 # CACHE_DIRECTORY = "/Volumes/USB2/pycasccache/"
@@ -430,14 +432,30 @@ class DirCASCReader(CASCReader):
 
         self.file_table         = {} # maps ekey -> fileinfo (size, datafile, offset)
 
-        files = os.listdir( self.data_path ) # "/World of Warcraft/Data/data"
-        for x in files:
-            if x[-4:]==".idx":
-                print("[파일로딩] : " + x )
-                ents = r_idx( self.data_path + x )
-                for e in ents:
-                    if e.ekey not in self.file_table: # since apparently duplicates exist and are wrong.... YAY!
-                        self.file_table[e.ekey] = e
+        # files = os.listdir( self.data_path ) # "/World of Warcraft/Data/data"
+        # for x in files:
+        #     if x[-4:]==".idx":
+        #         print("[파일로딩] : " + x )
+        #         ents = r_idx( self.data_path + x )
+        #         for e in ents:
+        #             if e.ekey not in self.file_table: # since apparently duplicates exist and are wrong.... YAY!
+        #                 self.file_table[e.ekey] = e
+
+        idx_files_recent = []
+        idx_files = fnmatch.filter( os.listdir( self.data_path ), "*.idx" )
+        for i in range( 0x10 ):
+            # files = os.listdir( self.data_path )
+            # print( files )
+            idxs  = fnmatch.filter( idx_files, f"{i:02x}*.idx" )
+            # print( idxs )
+            idx_files_recent.append( idxs[-1] )
+        print( idx_files_recent )
+
+        for x in idx_files_recent:
+            ents = r_idx( self.data_path + x )
+            for e in ents:
+                if e.ekey not in self.file_table:
+                    self.file_table[ e.ekey ] = e
 
         print(f"[전체에셋] : { len( self.file_table ) }")
 
@@ -448,7 +466,7 @@ class DirCASCReader(CASCReader):
         self.ckey_map = parse_encoding_file( enc_file ) # maps ckey(hexstr) -> ekey(int of first 9 bytes)
         print(f"[CTBL] {len(self.ckey_map)}")
 
-        # print(root_ckey,self.ckey_map[int(root_ckey,16)],self.file_table[self.ckey_map[int(root_ckey,16)]])
+        print( root_ckey, self.ckey_map[int(root_ckey,16)], self.file_table[self.ckey_map[int(root_ckey,16)]] )
         root_file = self.get_file_by_ckey( root_ckey )
         self.file_translate_table = parse_root_file( self.uid, root_file, self ) # maps some ID(can be filedataid, path, whatever) -> ckey
         print(f"[FTTBL] {len(self.file_translate_table)}")
