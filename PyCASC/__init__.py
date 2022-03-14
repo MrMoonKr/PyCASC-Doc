@@ -7,9 +7,9 @@ from typing import Union, Dict
 import fnmatch
 
 CACHE_DURATION = 3600
-# CACHE_DIRECTORY = os.path.join(os.getcwd(),"cache")
+CACHE_DIRECTORY = os.path.join( os.getcwd(), "cache" )
 # CACHE_DIRECTORY = "/Volumes/USB2/pycasccache/"
-CACHE_DIRECTORY = "/Volumes/Secure/pycasc"
+# CACHE_DIRECTORY = "/Volumes/Secure/pycasc"
 
 LISTFILE = (os.path.join(os.getcwd(),"listfiles","wow-82.txt"),"82")
 
@@ -139,6 +139,14 @@ def r_cidx(df):
     assert len(ents) == numel
 
     return ents
+
+def save_data( data: bytes, file_name: str ):
+    cache_file = os.path.join( CACHE_DIRECTORY, f"{file_name}.cache")
+
+    if not os.path.exists( CACHE_DIRECTORY ):
+        os.makedirs( CACHE_DIRECTORY )
+    with open( cache_file, "wb", buffering=0 ) as f:
+        f.write( data )
 
 class CASCReader:
     ckey_map:Dict[int,int]
@@ -418,19 +426,18 @@ class DirCASCReader(CASCReader):
             print( "[.build.config]", self.build_config )
             #self.build_config = parse_build_config(b.read())
 
-
         print("[BF]")
 
         assert build_file is not None and self.build_config is not None
 
-        self.uid                = self.build_config['build-uid']
-        root_ckey               = self.build_config['root']
-        enc_hash1,enc_hash2     = self.build_config['encoding'].split()
-        self.install_ckey,_     = self.build_config['install'].split()
-        download_hash1,_        = self.build_config['download'].split()
-        size_hash1,_            = self.build_config['size'].split()
+        self.uid            = self.build_config['build-uid']
+        root_ckey           = self.build_config['root']
+        enc_hash1,enc_hash2 = self.build_config['encoding'].split()
+        self.install_ckey,_ = self.build_config['install'].split()
+        download_hash1,_    = self.build_config['download'].split()
+        size_hash1,_        = self.build_config['size'].split()
 
-        self.file_table         = {} # maps ekey -> fileinfo (size, datafile, offset)
+        self.file_table     = {} # maps ekey -> fileinfo (size, datafile, offset)
 
         # files = os.listdir( self.data_path ) # "/World of Warcraft/Data/data"
         # for x in files:
@@ -441,33 +448,36 @@ class DirCASCReader(CASCReader):
         #             if e.ekey not in self.file_table: # since apparently duplicates exist and are wrong.... YAY!
         #                 self.file_table[e.ekey] = e
 
-        idx_files_recent = []
-        idx_files = fnmatch.filter( os.listdir( self.data_path ), "*.idx" )
+        idx_files_recent    = []
+        idx_files           = fnmatch.filter( os.listdir( self.data_path ), "*.idx" )
         for i in range( 0x10 ):
-            # files = os.listdir( self.data_path )
-            # print( files )
-            idxs  = fnmatch.filter( idx_files, f"{i:02x}*.idx" )
-            # print( idxs )
-            idx_files_recent.append( idxs[-1] )
+            idxs            = fnmatch.filter( idx_files, f"{i:02x}*.idx" )
+            idx_files_recent.append( idxs[-1] ) # last one
+
         print( idx_files_recent )
 
         for x in idx_files_recent:
-            ents = r_idx( self.data_path + x )
+            ents            = r_idx( self.data_path + x )
             for e in ents:
                 if e.ekey not in self.file_table:
                     self.file_table[ e.ekey ] = e
 
-        print(f"[전체에셋] : { len( self.file_table ) }")
+        print( f"[전체에셋] : { len( self.file_table ) }" )
 
         enc_info = self.file_table[int( enc_hash2[:18], 16 )]
         enc_file = r_cascfile( self.data_path, enc_info.data_file, enc_info.offset )
-        
+
+        save_data( enc_file, enc_hash2 )
+
         # Load the CKEY MAP from the encoding file.
         self.ckey_map = parse_encoding_file( enc_file ) # maps ckey(hexstr) -> ekey(int of first 9 bytes)
         print(f"[CTBL] {len(self.ckey_map)}")
 
         print( root_ckey, self.ckey_map[int(root_ckey,16)], self.file_table[self.ckey_map[int(root_ckey,16)]] )
         root_file = self.get_file_by_ckey( root_ckey )
+
+        save_data( root_file, root_ckey )
+        
         self.file_translate_table = parse_root_file( self.uid, root_file, self ) # maps some ID(can be filedataid, path, whatever) -> ckey
         print(f"[FTTBL] {len(self.file_translate_table)}")
 
@@ -480,6 +490,8 @@ class DirCASCReader(CASCReader):
         self.file_translate_table.append((NAMED_FILE,"_SIZE",size_hash1))
 
         CASCReader.__init__(self, read_install_file)
+
+    
         
     def get_file_size_by_ckey(self,ckey):
         finfo = self.get_file_info_by_ckey(ckey)

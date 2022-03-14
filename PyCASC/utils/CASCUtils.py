@@ -1,7 +1,8 @@
+import os
 import struct
 from io import BufferedReader, BytesIO
 from typing import List
-from PyCASC import TACT_KEYS
+from PyCASC import CACHE_DIRECTORY, TACT_KEYS
 from PyCASC.utils.blizzutils import byteskey_to_hex, var_int
 
 def beautify_filesize( i: int ):
