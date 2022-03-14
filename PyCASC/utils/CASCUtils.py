@@ -10,44 +10,53 @@ def beautify_filesize( i: int ):
     while i>1024:i/=1024;c+=1
     return str(round(i,2))+t[c]+"B"
     
-def parse_encoding_file(fd,whole_key=False):
-    d=BytesIO(fd)
+def parse_encoding_file( fd, whole_key=False ):
+    """Content Hash Key to BLTE Encoded Hash Key 정보 저장 파일 읽기"""
+    d = BytesIO(fd)
+
     assert d.read(2) == b"EN"
-    version,ckey_len,ekey_len = struct.unpack("3B",d.read(3))
-    ckey_pagesize = int.from_bytes(d.read(2),'big')*1024
-    ekey_pagesize = int.from_bytes(d.read(2),'big')*1024
-    ckey_pagecount = int.from_bytes(d.read(4),'big')
-    ekey_pagecount = int.from_bytes(d.read(4),'big')
+
+    (
+        version,
+        ckey_len,
+        ekey_len
+    ) = struct.unpack( "3B", d.read( 3 ) )
+
+    ckey_pagesize   = int.from_bytes(d.read(2),'big')*1024
+    ekey_pagesize   = int.from_bytes(d.read(2),'big')*1024
+    ckey_pagecount  = int.from_bytes(d.read(4),'big')
+    ekey_pagecount  = int.from_bytes(d.read(4),'big')
     d.seek(1,1) #unk_1
     espec_blocksize = int.from_bytes(d.read(4),'big')
 
     # print(version,ckey_len,ekey_len,ckey_pagesize,ekey_pagesize,ckey_pagecount,ekey_pagecount,espec_blocksize)
-    espec_data = d.seek(espec_blocksize,1)
-    ckey_map = _parse_ckey_pages(d,ckey_len,ekey_len,ckey_pagesize,ckey_pagecount,whole_key)
+    espec_data      = d.seek( espec_blocksize, 1 )
+    ckey_map        = _parse_ckey_pages( d, ckey_len, ekey_len, ckey_pagesize, ckey_pagecount, whole_key )
 
     return ckey_map # i could do more here, but this is the only thing i actually need so idgaf.
 
-def _parse_ckey_pages(d,ckey_len,ekey_len,ckey_pagesize,ckey_pagecount,whole_key):
+def _parse_ckey_pages( d: BytesIO, ckey_len, ekey_len, ckey_pagesize, ckey_pagecount, whole_key ):
     a=d.tell()
     headerlen=0x20*ckey_pagecount
     # d.seek(0x20*ckey_pagecount,1) # read the index table
     ckey_map = {}
-    for i in range(ckey_pagecount):
-        d.seek(headerlen + i * ckey_pagesize+a)
+    for i in range( ckey_pagecount ):
+        d.seek( headerlen + i * ckey_pagesize + a )
         while True:
-            ekcount = struct.unpack("H",d.read(2))[0]
+            ekcount = struct.unpack( "H", d.read(2) )[0]
             if ekcount==0:
                 break
-            d.seek(4,1)
+
+            d.seek( 4, 1 )
             # cfsize, = struct.unpack(">i",d.read(4))
-            ckey = int.from_bytes(d.read(ckey_len),byteorder='big')
+            ckey = int.from_bytes( d.read( ckey_len ), byteorder='big' )
             # assert ekcount == len(ekeys)
             if whole_key:
-                ckey_map[ckey]=int.from_bytes(d.read(ekey_len),byteorder='big')
+                ckey_map[ckey] = int.from_bytes( d.read( ekey_len ), byteorder='big' )
             else:
-                ckey_map[ckey]=int.from_bytes(d.read(ekey_len)[:9],byteorder='big')
+                ckey_map[ckey] = int.from_bytes( d.read( ekey_len )[:9], byteorder='big' )
             # [byteskey_to_hex(d.read(ekey_len)) for x in range(ekcount)][0]
-            d.seek(ekey_len*(ekcount-1),1)
+            d.seek( ekey_len * ( ekcount - 1 ), 1 )
     return ckey_map
 
 class INTag:
