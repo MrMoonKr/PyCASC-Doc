@@ -274,7 +274,7 @@ NAMED_FILE=2
 WOW_HASHED_FILE=3
 WOW_DATAID_FILE=4
 
-def parse_root_file(uid,fd,cascreader):
+def parse_root_file( uid, fd, cascreader ):
     """Returns an array of format [TYPE, ID, CKEY, EXTRA...],
         Type = one of NAMED_FILE, ID_FILE, ID_INDEXED_FILE
         Id = depends on type. NAMED:"strname", ID:"id", ID_INDEXED:("id","index")
@@ -295,7 +295,7 @@ def parse_root_file(uid,fd,cascreader):
     elif uid in ['pro']:
         return parse_ow_root(fd)
     elif uid in ['wow']:
-        return parse_wow_root(fd)
+        return parse_wow_root( fd )
     else:
         with open(f"{uid}.rootfile","wb+") as f:
             f.write(fd)

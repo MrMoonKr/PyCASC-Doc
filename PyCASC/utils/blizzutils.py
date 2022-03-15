@@ -7,7 +7,7 @@ from io import BufferedReader, BytesIO
 from time import time
 from PyCASC import CACHE_DIRECTORY, CACHE_DURATION
 
-def parse_config(c: str) -> List[Dict[str,str]]:
+def parse_config( c: str ) -> List[Dict[str,str]]:
     out     = []
     lines   = c.split("\n")
     cols    = list(map(lambda x:x.split("!")[0],lines[0].split("|")))
@@ -20,7 +20,7 @@ def parse_config(c: str) -> List[Dict[str,str]]:
         for v in x.split("|"):
             row[cols[i]] = v
             i+=1
-        out.append(row)
+        out.append( row )
     return out
 
 def parse_build_config(c):

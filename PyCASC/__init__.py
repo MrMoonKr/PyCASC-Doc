@@ -401,26 +401,29 @@ class CDNCASCReader(CASCReader):
 class DirCASCReader(CASCReader):
     """로컬에 설치된 CASC 파일 시스템 로더"""
 
-    def __init__(self, path: str, read_install_file: bool=True):
-        if not os.path.exists(path+"/.build.info") or not os.path.exists(path+"/Data/data"):
+    def __init__( self, path: str, read_install_file: bool=False ):
+        if not os.path.exists( path+"/.build.info" ) or not os.path.exists( path+"/Data/data" ):
             raise Exception("Not a valid CASC datapath")
-        self.path       = path
-        self.build_path = self.path+"/.build.info"
-        self.data_path  = self.path+"/Data/data/"
 
-        build_file      = None
-        self.build_config=None
+        self.path           = path
+        self.build_path     = self.path+"/.build.info"
+        self.data_path      = self.path+"/Data/data/"
 
-        with open( self.build_path, "r" ) as b:
-            build_file_bin      = b.read()
-            build_file_dat      = parse_config( build_file_bin )
-            build_file          = build_file_dat[0]
+        build_file          = None
+        self.build_config   = None
+
+        # .build.info 파일 읽기
+        with open( self.build_path, "r" ) as f:
+            build_file_bin  = f.read()
+            build_file_dat  = parse_config( build_file_bin )
+            build_file      = build_file_dat[0]
             print( "[.build.info] : ", build_file )
             #build_file = parse_config(b.read())[0]
 
+        # /Data/config/[Build Key] 파일 읽기
         self.build_config_path = self.path + "/Data/config/" + prefix_hash( build_file['Build Key'] )
-        with open( self.build_config_path, "r" ) as b:
-            build_config_bin    = b.read()
+        with open( self.build_config_path, "r" ) as f:
+            build_config_bin    = f.read()
             build_config_dat    = parse_build_config( build_config_bin )
             self.build_config   = build_config_dat
             print( "[.build.config]", self.build_config )
