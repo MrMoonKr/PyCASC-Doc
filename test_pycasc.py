@@ -406,9 +406,9 @@ if __name__ == '__main__':
     ex = CascViewApp()
 
     logger.info( "로컬 파일 시스템 로딩 시작" )
-    ex.load_casc_dir("F:/myGames/World of Warcraft")
+    # ex.load_casc_dir("F:/myGames/World of Warcraft")
     # ex.load_casc_dir("H:/myGames/World of Warcraft")
-    # ex.load_casc_cdn( "wow" )
+    ex.load_casc_cdn( "wow" )
 
     # ex.load_casc_dir("G:/Misc Games/Warcraft III")
     # ex.load_casc_dir("G:/Misc Games/Diablo III") 

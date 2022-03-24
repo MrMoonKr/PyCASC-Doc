@@ -15,8 +15,8 @@ def get_mem_cached(url,cache_dur=CACHE_DURATION):
         return dat
         
 
-def getProductCDNs(product):
-    return parse_config(get_mem_cached(f"http://us.patch.battle.net:1119/{product}/cdns", cache_dur=3600*24))
+def getProductCDNs( product ):
+    return parse_config( get_mem_cached( f"http://us.patch.battle.net:1119/{product}/cdns", cache_dur=3600*24 ) )
 def getProductVersions(product):
     return parse_config(get_cached(f"http://us.patch.battle.net:1119/{product}/versions", cache_dur=3600*24))
 def getProductBlobs(product):
@@ -26,8 +26,8 @@ def getProductInstallBlob(product):
 def getProductGameBlob(product):
     return get_cached(f"http://us.patch.battle.net:1119/{product}/blob/game", cache_dur=3600*24)
 
-def getProductCDNFile(product,file_hash,region="us",ftype="data",cache_dur=CACHE_DURATION,enc=None,max_size=-1,index=False,offset=0,size=-1):
-    cdnurl,cdnpath = getCDN(product,region)
+def getProductCDNFile( product, file_hash, region="us", ftype="data", cache_dur=CACHE_DURATION, enc=None, max_size=-1, index=False, offset=0, size=-1 ):
+    cdnurl, cdnpath = getCDN( product, region )
     if ftype == "config":
         d = get_cdn_config(cdnurl,cdnpath,file_hash,parse=False,cache_dur=cache_dur,max_size=max_size, index=index)
     else:
@@ -69,8 +69,8 @@ def fixStrings(data,locale="enUS",validStrings=None):
                 out[k]=data[x]
     return out
 
-def getCDN(product="catalogs",region="us"):
-    cdns = getProductCDNs(product)
+def getCDN( product = "catalogs", region = "us" ):
+    cdns = getProductCDNs( product )
     r_cdn = [cdn for cdn in cdns if cdn['Name']==region]
     
     if len(r_cdn):

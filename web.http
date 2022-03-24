@@ -1,0 +1,27 @@
+###
+# REST Client Extension 설치하세요
+###
+
+
+###
+# 테스트용
+###
+GET http://www.google.co.kr
+
+
+###
+# [CDNS]
+# Name|Path|Hosts|Servers|ConfigPath
+###
+
+###
+GET http://kr.patch.battle.net:1119/wow/cdns
+
+###
+GET http://kr.patch.battle.net:1119/w3/cdns
+
+###
+GET http://kr.patch.battle.net:1119/d3/cdns
+
+
+

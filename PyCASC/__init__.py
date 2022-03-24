@@ -238,19 +238,21 @@ from PyCASC.launcher import getProductCDNFile, getProductVersions, isCDNFileCach
 from PyCASC.utils.blizzutils import parse_build_config
 from PyCASC.utils.CASCUtils import parse_blte
 
-class CDNCASCReader(CASCReader):
+class CDNCASCReader( CASCReader ):
     """웹에 등록된 파일시스템 정보 로더"""
 
-    def __init__(self, product: str, region: str = "us", read_install_file: bool = False):
+    def __init__( self, product: str, region: str = "us", read_install_file: bool = False ):
+        """원격지 파일시스템 읽기"""
+
         self.product = product
 
-        vrs = [x for x in getProductVersions(product) if x['Region']==region]
+        vrs = [ x for x in getProductVersions( product ) if x['Region'] == region ]
         if len(vrs)==0:
             raise Exception(f"Product {product} or Region {region} invalid. Cannot load CASC data")
 
         vr = vrs[0]
         bc = vr['BuildConfig']
-        bc_f = getProductCDNFile(product,bc,region,ftype="config",enc="utf-8")
+        bc_f = getProductCDNFile( product, bc, region, ftype="config", enc="utf-8" )
         self.build_config = parse_build_config(bc_f)
 
         cdn_f = parse_build_config(getProductCDNFile(product,vr['CDNConfig'],region,ftype="config",enc="utf-8"))

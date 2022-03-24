@@ -196,24 +196,28 @@ def get_cached(url, cache=True, cache_dur=CACHE_DURATION, max_size=-1, offset=0,
 
 # I don't really want to use this, since splitting it into different handlers allows easier 
 #  parsing of each subgroup (since the subgroups are quite similar)
-def get_cdn_url(cdn_url, cdn_path, file_type, file_hash, index=False):
-    """웹다운로드 주소 만들기"""
-    return f"http://{cdn_url}/{cdn_path}/{file_type}/{file_hash[:2]}/{file_hash[2:4]}/{file_hash}"+(".index" if index else "")
+def get_cdn_url( cdn_url, cdn_path, file_type, file_hash, index=False ) -> str:
+    """
+        웹다운로드 주소 만들기. url/path/type/hash[:2]/hash[2:4]/hash + .index
+    """
+    return f"http://{cdn_url}/{cdn_path}/{file_type}/{file_hash[:2]}/{file_hash[2:4]}/{file_hash}" + (".index" if index else "")
 
-def _get_cdn_file(cdn_url, cdn_path, file_type, file_hash, cache=True, cache_dur=CACHE_DURATION, max_size=-1, index=False, offset=0, size=-1):
+def _get_cdn_file( cdn_url, cdn_path, file_type, file_hash, cache=True, cache_dur=CACHE_DURATION, max_size=-1, index=False, offset=0, size=-1 ):
     """ Get a specified file from a CDN for a product."""
 
-    if not file_type in ['data','config','patch']:
-        raise Exception(f"Invalid file type {file_type}")
+    if not file_type in [ 'data', 'config', 'patch' ]:
+        raise Exception( f"Invalid file type {file_type}" )
         
-    u=get_cdn_url(cdn_url,cdn_path,file_type,file_hash,index=index)
-    return get_cached(u,cache=cache,cache_dur=cache_dur,max_size=max_size,offset=offset,size=size)
+    u = get_cdn_url( cdn_url, cdn_path, file_type, file_hash, index=index )
+    return get_cached( u, cache=cache, cache_dur=cache_dur, max_size=max_size, offset=offset, size=size )
 
-def get_cdn_data(cdn_url,cdn_path,file_hash,cache=True,cache_dur=CACHE_DURATION,max_size=-1,index=False, offset=0, size=-1):
+def get_cdn_data( cdn_url, cdn_path, file_hash, cache=True, cache_dur=CACHE_DURATION, max_size=-1, index=False, offset=0, size=-1 ):
     """ Gets a specified data file from the specified cdn """
-    return _get_cdn_file(cdn_url,cdn_path,'data',file_hash,cache,cache_dur,max_size=max_size,index=index, offset=offset, size=size)
+    return _get_cdn_file( cdn_url, cdn_path, 'data', file_hash, cache, cache_dur, max_size=max_size, index=index, offset=offset, size=size )
 
-def get_cdn_config(cdn_url,cdn_path,file_hash,parse=True,cache=True,cache_dur=CACHE_DURATION,max_size=-1,index=False):
-    """ Gets specified config from the specified cdn """
-    f = _get_cdn_file(cdn_url,cdn_path,'config',file_hash,cache,cache_dur,max_size=max_size,index=index)
-    return parse_config(f) if parse else f
+def get_cdn_config( cdn_url, cdn_path, file_hash, parse=True, cache=True, cache_dur=CACHE_DURATION, max_size=-1, index=False ):
+    """ 
+        Gets specified config from the specified cdn 
+    """
+    f = _get_cdn_file( cdn_url, cdn_path, 'config', file_hash, cache, cache_dur, max_size=max_size, index=index )
+    return parse_config( f ) if parse else f
