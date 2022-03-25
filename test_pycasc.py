@@ -36,18 +36,18 @@ class TableFolderItem(object):
         self.parent = parent
         self.color = None
 
-    def get_color(self,force_update=False):
+    def get_color( self, force_update=False ):
         if self.file_data == None:
             return None
         
         if self.color != None and not force_update:
             return self.color
 
-        if not self.parent.CASCReader.is_file_fetchable(self.file_data[1],include_cdn=False):
+        if not self.parent.CASCReader.is_file_fetchable( self.file_data[1], include_cdn=False ):
             # if it's NOT locally fetchable, then it needs to be fetched from cdn.
-            self.color = QBrush(QColor(200, 200, 200))
+            self.color = QBrush( QColor( 200, 200, 200 ) )
         else:
-            self.color = QBrush(QColor(255, 255, 255))
+            self.color = QBrush( QColor( 255, 0, 0 ) )
 
         return self.color
 
@@ -63,24 +63,28 @@ class TableFolderItem(object):
         else:
             return self.text < other.text
 
-class FileTableModel(QtCore.QAbstractTableModel):
-    def __init__(self, data, parent=None):
-        super(FileTableModel, self).__init__(parent)
+class FileTableModel( QtCore.QAbstractTableModel ):
+    """테이블뷰의 모델 즉 데이터 제공"""
+    def __init__( self, data, parent=None ):
+        super( FileTableModel, self ).__init__( parent )
         self._data = data
 
-    def appendRow(self,w:QTableWidget):
-        self._data.append(w)
+    def appendRow( self, w:QTableWidget ):
+        self._data.append( w )
 
-    def rowCount(self, parent=None):
-        return len(self._data)
+    def rowCount( self, parent=None ):
+        """등록된 레코드(항목)수"""
+        return len( self._data )
 
-    def columnCount(self, parent=None):
+    def columnCount( self, parent=None ):
+        """칼럼수는 언제나 1"""
         return 1
 
-    def sort(self, order, d):
-        self._data = sorted(self._data)
+    def sort( self, order, d ):
+        """레코드(항목) 정렬"""
+        self._data = sorted( self._data )
 
-    def data(self, index, role=QtCore.Qt.DisplayRole):
+    def data( self, index, role=QtCore.Qt.DisplayRole):
         if role == QtCore.Qt.DisplayRole:
             row = index.row()
             if 0 <= row < self.rowCount():
@@ -90,13 +94,14 @@ class FileTableModel(QtCore.QAbstractTableModel):
             if 0 <= row < self.rowCount():
                 return self._data[row].get_color()
 
-class FileTableWidget(QTableView):
-    def __init__(self,parent):
+class FileTableWidget( QTableView ):
+    """테이블뷰"""
+    def __init__( self, parent ):
         self.parent_obj = parent
-        super(FileTableWidget, self).__init__(parent)
+        super( FileTableWidget, self ).__init__( parent )
 
-    def selectionChanged(self, selected, deselected):
-        self.parent_obj.on_click(None)
+    def selectionChanged( self, selected, deselected ):
+        self.parent_obj.on_click( None )
         # print(selected,deselected)
 
 class CascViewApp(QMainWindow):
@@ -120,7 +125,7 @@ class CascViewApp(QMainWindow):
         self.filetree=self.genFileTree()
         self.curPath=[]
 
-    def load_casc_dir(self, d: str):
+    def load_casc_dir( self, d: str ):
         """로컬에 설치된 블리자드 게임 로딩
         """
         self.load_empty_table()
@@ -150,27 +155,27 @@ class CascViewApp(QMainWindow):
         self.isCDN          = True
 
     def genFileTree(self):
-        ftree = {'folders':{},'files':{}}
+        ftree = { 'folders':{}, 'files':{} }
         for f in self.files:
             path = f[0].replace("\\","/").split("/")
             toptree = ftree
             for sp in path[:-1]:
                 if sp not in toptree['folders']:
-                    toptree['folders'][sp]={'folders':{},'files':{}}
+                    toptree['folders'][sp] = { 'folders':{}, 'files':{} }
                 toptree = toptree['folders'][sp]
-            toptree['files'][path[-1]]=f
+            toptree['files'][path[-1]] = f
 
        
-        uktree = {'folders':{},'files':{}}
+        uktree = { 'folders':{}, 'files':{} }
         for f in self.unknown_files:
-            uktree['files'][f"{f[0]:x}"]=f
+            uktree['files'][ f"{f[0]:x}"  ]= f
 
-        if len(uktree['files']) > 0:
+        if len( uktree['files'] ) > 0:
             ftree['folders']['!UNNAMED'] = uktree
 
         return ftree
         
-    def initUI(self):
+    def initUI( self ):
         self.setWindowTitle(self.title)
         self.resize(self.width,self.height)
         
@@ -188,6 +193,7 @@ class CascViewApp(QMainWindow):
 
         mainMenu = self.menuBar()
         fileMenu = mainMenu.addMenu('&File')
+
         def choose_and_load_from_dir():
             dest = QFileDialog.getExistingDirectory(self, f"Select your game directory (WoW, WC3, D3, etc)", os.getcwd())
             try:
@@ -204,10 +210,29 @@ class CascViewApp(QMainWindow):
             caction.triggered.connect(lambda: self.load_casc_cdn(self.sender().val))
             cdnMenu.addAction(caction)
 
+
+
+        fileMenu.addAction( "Open List File", self.open_list_file )
+        
+
         # Show widget
         self.show()
+
+    def open_list_file( self ):
+        print( "리스트파일 열기 메뉴 클릭")
+        self.populate_table( self.fileTable, None )
+
+    def populate_table( self, table: FileTableWidget, list ):
+        model = table.model()
+        if model is not None:
+            table.setModel( None )
+            model.deleteLater()
+
+        table_model = FileTableModel( [], table )
+        pass
+
     
-    def populateTable(self):
+    def populateTable( self ):
         curDir = self.filetree
         for x in self.curPath:
             curDir = curDir['folders'][x]
@@ -226,22 +251,23 @@ class CascViewApp(QMainWindow):
         #     self.fileTable.removeRow(0)
 
         if self.curPath != []:
-            self.tableModel.appendRow(TableFolderItem("..",self,is_folder=True,is_back_button=True))
+            self.tableModel.appendRow( TableFolderItem( "..", self, is_folder=True, is_back_button=True ) )
 
         for f in curDir['files']:
-            self.tableModel.appendRow(TableFolderItem(f,self,file_data=curDir['files'][f]))
+            self.tableModel.appendRow( TableFolderItem( f, self, file_data = curDir['files'][f] ) )
 
         for f in curDir['folders']:
-            self.tableModel.appendRow(TableFolderItem("📁"+f,self,is_folder=True))
+            self.tableModel.appendRow( TableFolderItem( "📁"+f, self, is_folder=True ) )
             
-        self.fileTable.setModel(self.tableModel)
+        self.fileTable.setModel( self.tableModel )
         self.fileTable.setSortingEnabled(True)
         self.fileTable.sortByColumn(0,0)
         self.fileTable.scrollToTop()
 
-    def createTables(self):
+    def createTables( self ):
+        """테이블뷰 생성 및 배치"""
         # Create tables
-        self.fileTable = FileTableWidget(self)
+        self.fileTable = FileTableWidget( self )
         # print(self.fileTable.styleSheet())
         # self.fileTable.setStyleSheet("border:0px")
         self.fileTable.setShowGrid(False)
@@ -253,11 +279,11 @@ class CascViewApp(QMainWindow):
         # self.fileTable.setDragEnabled(True)
         # self.fileTable.setDropIndicatorShown(True)
 
-        header = self.fileTable.horizontalHeader()       
-        header.setSectionResizeMode(QHeaderView.Stretch)
+        header = self.fileTable.horizontalHeader()
+        header.setSectionResizeMode( QHeaderView.Stretch )
         header.hide()
 
-        self.populateTable()        
+        self.populateTable()
 
         self.infoTable = QTableWidget()
         self.infoTable.setColumnCount(1)
@@ -290,9 +316,9 @@ class CascViewApp(QMainWindow):
         if e.key()==Qt.Key_Enter or e.key()==Qt.Key_Return:
             self.on_dbl_click(None)
 
-    def on_right_click(self, QPos=None):
+    def on_right_click( self, QPos=None ):
         parent=self.sender()
-        pPos=parent.mapToGlobal(QtCore.QPoint(0, 0))
+        pPos=parent.mapToGlobal( QtCore.QPoint(0, 0) )
         mPos=pPos+QPos
         self.rcMenu=QMenu(self)
         item_indexs=[x for x in self.fileTable.selectedIndexes()]
@@ -384,15 +410,15 @@ class CascViewApp(QMainWindow):
         data = self.CASCReader.get_file_by_ckey(ckey,8*1024) # load 8k
         
         w = HexViewWidget(self)
-        w.viewFile(item.text,data,size,force_type)
-        self.openWidgets.append(w)
+        w.viewFile( item.text, data, size, force_type )
+        self.openWidgets.append( w )
 
-    def sub_widget_closed(self,w):
+    def sub_widget_closed( self, w ):
         if w in self.openWidgets:
-            self.openWidgets.remove(w)
+            self.openWidgets.remove( w )
         w.deleteLater()
 
-    def closeEvent(self, e):
+    def closeEvent( self, e ):
         for h in self.openWidgets:
             if isinstance(h, HexViewWidget) and h.tmp_file is not None:
                 os.unlink(h.tmp_file)
@@ -406,9 +432,9 @@ if __name__ == '__main__':
     ex = CascViewApp()
 
     logger.info( "로컬 파일 시스템 로딩 시작" )
-    # ex.load_casc_dir("F:/myGames/World of Warcraft")
+    ex.load_casc_dir( "F:/myGames/World of Warcraft" )
     # ex.load_casc_dir("H:/myGames/World of Warcraft")
-    ex.load_casc_cdn( "wow" )
+    # ex.load_casc_cdn( "wow" )
 
     # ex.load_casc_dir("G:/Misc Games/Warcraft III")
     # ex.load_casc_dir("G:/Misc Games/Diablo III") 

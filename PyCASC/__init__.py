@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 import struct
 import pickle
@@ -41,7 +42,9 @@ def prep_82_listfile(fp):
             names[int(i)]=f.strip()
     return names
 
+
 class FileInfo:
+    """에셋정보저장클래스"""
     ekey:int
     ckey:int
     data_file:int
@@ -85,7 +88,7 @@ def r_idx( file_name: str ) -> list[FileInfo]:
             e.offset            = eo & ( 2**30-1 )
             e.compressed_size   = es
             e.ekey              = ek
-
+            #print( e )
             ents.append( e )
     return ents
 
@@ -190,7 +193,7 @@ class CASCReader:
             return fi.name if hasattr(fi,"name") else None
         return None
 
-    def list_files(self):
+    def list_files( self ) -> list:
         """Returns a list of tuples, each tuple of format (FileName, CKey)"""
         files = []
         for x in self.ckey_map:
@@ -201,15 +204,15 @@ class CASCReader:
                     files.append((finfo.name,x))
         return files
     
-    def list_unnamed_files(self):
+    def list_unnamed_files( self ) -> list:
         """Returns a list of tuples, each tuple of format (Ckey,Ckey) (to match with named files list)"""
         files = []
         for ckey in self.ckey_map:
             first_ekey = self.ckey_map[ckey]
             if first_ekey in self.file_table:
                 finfo = self.get_file_info_by_ckey(ckey)
-                if finfo is not None and not hasattr(finfo,'name'):
-                    files.append((ckey,ckey))
+                if finfo is not None and not hasattr( finfo, 'name' ):
+                    files.append( ( ckey, ckey ) )
         return files
 
     def get_file_size_by_ckey(self,ckey):
@@ -400,16 +403,21 @@ class CDNCASCReader( CASCReader ):
                 return isCDNFileCached(self.product,ekey,cache_dur=3600*24*10)
 
 
-class DirCASCReader(CASCReader):
+class DirCASCReader( CASCReader ):
     """로컬에 설치된 CASC 파일 시스템 로더"""
 
-    def __init__( self, path: str, read_install_file: bool=False ):
-        if not os.path.exists( path+"/.build.info" ) or not os.path.exists( path+"/Data/data" ):
+    def __init__( self, base_path: str, read_install_file: bool=False ):
+
+        if ( not os.path.exists( base_path.rstrip('/') + "/.build.info" ) or
+             not os.path.exists( base_path.rstrip('/') + "/Data/data" ) ):
             raise Exception("Not a valid CASC datapath")
 
-        self.path           = path
-        self.build_path     = self.path+"/.build.info"
-        self.data_path      = self.path+"/Data/data/"
+        self.base_path      = base_path.rstrip('/')
+        """설치 폴더경로"""
+        self.build_path     = self.base_path + "/.build.info"
+        """.build.info 파일경로"""
+        self.data_path      = self.base_path + "/Data/data/"
+        """데이터 폴더경로"""
 
         build_file          = None
         self.build_config   = None
@@ -423,7 +431,7 @@ class DirCASCReader(CASCReader):
             #build_file = parse_config(b.read())[0]
 
         # /Data/config/[Build Key] 파일 읽기
-        self.build_config_path = self.path + "/Data/config/" + prefix_hash( build_file['Build Key'] )
+        self.build_config_path = self.base_path + "/Data/config/" + prefix_hash( build_file['Build Key'] )
         with open( self.build_config_path, "r" ) as f:
             build_config_bin    = f.read()
             build_config_dat    = parse_build_config( build_config_bin )
@@ -444,15 +452,55 @@ class DirCASCReader(CASCReader):
 
         self.file_table     = {} # maps ekey -> fileinfo (size, datafile, offset)
 
-        # files = os.listdir( self.data_path ) # "/World of Warcraft/Data/data"
-        # for x in files:
-        #     if x[-4:]==".idx":
-        #         print("[파일로딩] : " + x )
-        #         ents = r_idx( self.data_path + x )
-        #         for e in ents:
-        #             if e.ekey not in self.file_table: # since apparently duplicates exist and are wrong.... YAY!
-        #                 self.file_table[e.ekey] = e
+        self.load_idx_files( self.file_table )
 
+        self.load_encoding_file( self.file_table, enc_hash2 )
+
+        self.load_root_file( root_ckey )
+
+        self.file_translate_table.append((NAMED_FILE,"_ROOT",root_ckey))
+        
+        self.ckey_map[int(enc_hash1,16)] = int(enc_hash2[:18],16) # map the encoding file's ckey to its own ekey on the ckey-ekey map, since it appears to not be included in the enc-table
+        self.file_translate_table.append((NAMED_FILE,"_ENCODING",enc_hash1))
+        self.file_translate_table.append((NAMED_FILE,"_INSTALL",self.install_ckey))
+        self.file_translate_table.append((NAMED_FILE,"_DOWNLOAD",download_hash1))
+        self.file_translate_table.append((NAMED_FILE,"_SIZE",size_hash1))
+
+        self.load_listfile()
+
+        CASCReader.__init__(self, read_install_file)
+
+    def load_listfile( self ):
+        """리스트파일 로딩, ( FileID, FilePath ) 목록"""
+        if self.uid == "wow":
+            if LISTFILE[1] == "82":
+                self.listed_files = prep_82_listfile(LISTFILE[0])
+            else:
+                self.listed_files = prep_6x_listfile(LISTFILE[0])
+
+    def load_root_file( self, root_ckey ):
+        """루트 파일 로딩, ( FileID, CKey, NameHash ) 목록"""
+        print( root_ckey, self.ckey_map[int(root_ckey,16)], self.file_table[self.ckey_map[int(root_ckey,16)]] )
+        root_file = self.get_file_by_ckey( root_ckey )
+
+        save_data( root_file, root_ckey )
+        
+        self.file_translate_table = parse_root_file( self.uid, root_file, self ) # maps some ID(can be filedataid, path, whatever) -> ckey
+        print(f"[FTTBL] {len(self.file_translate_table)}")
+
+    def load_encoding_file( self, file_table, enc_hash2 ):
+        """인코딩 파일 로딩, ( CKey, EKey ) 목록"""
+        enc_info = file_table[ int( enc_hash2[:18], 16 ) ]
+        enc_file = r_cascfile( self.data_path, enc_info.data_file, enc_info.offset )
+
+        save_data( enc_file, enc_hash2 )
+
+        # Load the CKEY MAP from the encoding file.
+        self.ckey_map = parse_encoding_file( enc_file ) # maps ckey(hexstr) -> ekey(int of first 9 bytes)
+        print( f"[CTBL] { len( self.ckey_map ) }" )
+
+    def load_idx_files( self, file_table ):
+        """idx 파일 로딩, ( EKey, DataIndex, Offset, Size ) 목록"""
         idx_files_recent    = []
         idx_files           = fnmatch.filter( os.listdir( self.data_path ), "*.idx" )
         for i in range( 0x10 ):
@@ -464,37 +512,10 @@ class DirCASCReader(CASCReader):
         for x in idx_files_recent:
             ents            = r_idx( self.data_path + x )
             for e in ents:
-                if e.ekey not in self.file_table:
-                    self.file_table[ e.ekey ] = e
+                if e.ekey not in file_table:
+                    file_table[ e.ekey ] = e
 
-        print( f"[전체에셋] : { len( self.file_table ) }" )
-
-        enc_info = self.file_table[int( enc_hash2[:18], 16 )]
-        enc_file = r_cascfile( self.data_path, enc_info.data_file, enc_info.offset )
-
-        save_data( enc_file, enc_hash2 )
-
-        # Load the CKEY MAP from the encoding file.
-        self.ckey_map = parse_encoding_file( enc_file ) # maps ckey(hexstr) -> ekey(int of first 9 bytes)
-        print(f"[CTBL] {len(self.ckey_map)}")
-
-        print( root_ckey, self.ckey_map[int(root_ckey,16)], self.file_table[self.ckey_map[int(root_ckey,16)]] )
-        root_file = self.get_file_by_ckey( root_ckey )
-
-        save_data( root_file, root_ckey )
-        
-        self.file_translate_table = parse_root_file( self.uid, root_file, self ) # maps some ID(can be filedataid, path, whatever) -> ckey
-        print(f"[FTTBL] {len(self.file_translate_table)}")
-
-        self.file_translate_table.append((NAMED_FILE,"_ROOT",root_ckey))
-        
-        self.ckey_map[int(enc_hash1,16)] = int(enc_hash2[:18],16) # map the encoding file's ckey to its own ekey on the ckey-ekey map, since it appears to not be included in the enc-table
-        self.file_translate_table.append((NAMED_FILE,"_ENCODING",enc_hash1))
-        self.file_translate_table.append((NAMED_FILE,"_INSTALL",self.install_ckey))
-        self.file_translate_table.append((NAMED_FILE,"_DOWNLOAD",download_hash1))
-        self.file_translate_table.append((NAMED_FILE,"_SIZE",size_hash1))
-
-        CASCReader.__init__(self, read_install_file)
+        print( f"[전체에셋] : { len( file_table ) }" )
 
     
         

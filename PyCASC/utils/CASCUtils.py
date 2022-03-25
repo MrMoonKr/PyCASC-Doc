@@ -224,10 +224,10 @@ def parse_blte( df, read_data=True, max_size=-1 ):
                 break
     return blte_header, blte_data.getvalue()
 
-def cascfile_size(data_path,data_index,offset):
+def cascfile_size( data_path, data_index, offset ):
     size=0
     chunkcount=0
-    with open(f"{data_path}data.{data_index:03d}","rb") as df:
+    with open( f"{data_path}data.{data_index:03d}", "rb" ) as df:
         df.seek(offset+30) # fuck my ass
         # r_casc_dataheader(df)
         blte_header,dbfr=parse_blte(df,False)
