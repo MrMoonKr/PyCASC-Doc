@@ -4,3 +4,4 @@ build
 __pycache__
 PyCASC.egg-info
 dist
+/.venv-local
